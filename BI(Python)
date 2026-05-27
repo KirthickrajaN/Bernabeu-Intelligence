@@ -1,0 +1,72 @@
+import os
+import snowflake.connector
+from langchain_community.document_loaders import SnowflakeLoader
+from langchain_experimental.text_splitter import SemanticChunker
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_community.vectorstores import FAISS
+from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
+
+# Securely bind your API Key (Best practice: use environment variables)
+os.environ["OPENAI_API_KEY"] = "YOUR_OPENAI_API_KEY_HERE"
+
+def get_snowflake_connection():
+    """Establishes connection to the Snowflake Data Warehouse."""
+    return snowflake.connector.connect(
+        user='YOUR_SNOWFLAKE_USERNAME',
+        password='YOUR_SNOWFLAKE_PASSWORD',
+        account='YOUR_SNOWFLAKE_ACCOUNT_LOCATOR', # e.g., 'xy12345.us-east-1'
+        warehouse='COMPUTE_WH',
+        database='REALMADRID_DB',
+        schema='OPERATIONS'
+    )
+
+def query_real_madrid_copilot(user_question):
+    # 1. Fetch live documents from Snowflake
+    ctx = get_snowflake_connection()
+    cursor = ctx.cursor()
+    cursor.execute("SELECT file_name, document_text FROM CLUB_DOCUMENTS")
+    rows = cursor.fetchall()
+    
+    # Format data into LangChain document structures
+    raw_texts = []
+    for row in rows:
+        raw_texts.append(row[1])
+    ctx.close()
+
+    # 2. Advanced Semantic Chunking
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    text_splitter = SemanticChunker(embeddings)
+    
+    # Process raw text strings into contextual semantic blocks
+    documents = text_splitter.create_documents(raw_texts)
+
+    # 3. Build Vector Index in memory
+    vector_db = FAISS.from_documents(documents, embeddings)
+    retriever = vector_db.as_retriever(search_kwargs={"k": 2})
+
+    # 4. Strict Prompt Engineering Design
+    template = """
+    You are the Executive Intelligence Assistant for Real Madrid C.F.
+    Answer the executive inquiry using only the provided official club data.
+    If the data does not contain the answer, reply with: "Data unavailable in current club records."
+    
+    Club Records: {context}
+    Inquiry: {question}
+    
+    Strategic Response:"""
+    
+    PROMPT = PromptTemplate(template=template, input_variables=["context", "question"])
+
+    # 5. Initialize the LLM with low temperature for factual compliance
+    llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.1)
+
+    # Assemble the RAG pipeline
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="stuff",
+        retriever=retriever,
+        chain_type_kwargs={"prompt": PROMPT}
+    )
+
+    return qa_chain.run(user_question)
