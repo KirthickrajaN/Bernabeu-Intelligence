@@ -1,0 +1,27 @@
+import streamlit as st
+from engine import query_real_madrid_copilot
+
+st.set_page_config(page_title="Real Madrid Executive Workspace", page_icon="⚽", layout="centered")
+
+st.title("⚪ Real Madrid C.F. Executive Copilot")
+st.subheader("Data-Driven Club Intelligence Platform")
+st.markdown("---")
+
+st.info("💡 **Live Pipeline Connected:** Pulling document arrays directly from Snowflake tables and executing vector similarity matches.")
+
+# User entry prompt
+user_query = st.text_input(
+    "Enter Operational or Financial Inquiry:",
+    placeholder="e.g., What is the annual contract value for Kylian Mbappe?"
+)
+
+if user_query:
+    with st.spinner("Executing semantic matching across club records..."):
+        try:
+            # Trigger the extraction and RAG sequence
+            output_answer = query_real_madrot_copilot(user_query)
+            
+            st.markdown("### 📊 System Response")
+            st.success(output_answer)
+        except Exception as e:
+            st.error(f"Execution Failure: Please verify cloud access credentials. Details: {e}")
