@@ -1,0 +1,17 @@
+-- 1. Create the database architecture
+CREATE OR REPLACE DATABASE REALMADRID_DB;
+CREATE OR REPLACE SCHEMA OPERATIONS;
+
+-- 2. Create the table to hold your internal documents
+CREATE OR REPLACE TABLE CLUB_DOCUMENTS (
+    id INT IDENTITY(1,1),
+    file_name STRING,
+    document_text STRING,
+    uploaded_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
+);
+
+-- 3. Insert your mock text data into Snowflake
+INSERT INTO CLUB_DOCUMENTS (file_name, document_text) VALUES 
+('player_contracts.txt', 'Player Name: Kylian Mbappe. Annual Salary: 31250000. Release Clause: 1000000000. Player Name: Vinicius Junior. Annual Salary: 20830000. Release Clause: 1000000000. Loan Asset: Alvaro Rodriguez at Getafe, wage coverage 40 percent.'),
+('commercial_deals.txt', 'Adidas Sponsorship: Fixed annual payment of 110000000 euros. Merchandise Performance Royalty: 22.5 percent payout on global retail sales. Santiago Bernabeu Capacity: 84000 matchday capacity, 245 luxury VIP boxes.'),
+('medical_status.txt', 'Player: David Alaba. Diagnosis: Left Knee ACL tear. Return to play: 3 to 4 weeks. Player: Dani Carvajal. Diagnosis: Multi-ligament knee rupture. Return to play: Out for unknown duration, unlikely before mid-August 2026.');
